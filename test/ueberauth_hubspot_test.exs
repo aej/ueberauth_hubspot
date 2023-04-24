@@ -87,11 +87,36 @@ defmodule UeberauthHubspotTest do
 
     Application.put_env(:ueberauth_hubspot, :base_api_url, TestServer.url())
 
+    request_conn =
+      :get
+      |> conn("/auth/hubspot", id: "foo")
+      |> SpecRouter.call(@router)
+      |> Plug.Conn.fetch_cookies()
+
+    state = request_conn.private[:ueberauth_state_param]
+    code = "some_code"
+
     conn =
       :get
-      |> conn("/auth/hubspot/callback?state=123&code=abc")
-      |> init_test_session(%{})
-      |> Plug.Conn.fetch_query_params()
-      |> Ueberauth.Strategy.Hubspot.handle_callback!()
+      |> conn("/auth/hubspot/callback",
+        id: "foo",
+        code: code,
+        state: state
+      )
+      |> Map.put(:cookies, request_conn.cookies)
+      |> Map.put(:req_cookies, request_conn.req_cookies)
+      |> Plug.Session.call(@session_options)
+      |> SpecRouter.call(@router)
+
+    auth = conn.assigns.ueberauth_auth
+    now = DateTime.utc_now() |> DateTime.add(3600) |> DateTime.to_unix()
+
+    assert auth.credentials.token == "the-access-token"
+    assert auth.credentials.refresh_token == "the-refresh-token"
+    assert auth.credentials.token_type == "Bearer"
+    assert auth.credentials.scopes == ["oauth"]
+    assert auth.credentials.expires_at == now
+
+    assert auth.extra.raw_info == %{app_id: 456, hub_id: 123}
   end
 end
