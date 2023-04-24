@@ -14,34 +14,26 @@ defmodule UeberauthHubspotTest do
                      signing_salt: "CXlmrshG"
                    )
 
-  # defmodule SpecRouter do
-  #   require Ueberauth
-  #   use Plug.Router
+  defmodule SpecRouter do
+    use Plug.Router
 
-  #   @session_options [
-  #     store: :cookie,
-  #     key: "_my_key",
-  #     signing_salt: "CXlmrshG"
-  #   ]
+    @session_options [
+      store: :cookie,
+      key: "_my_key",
+      signing_salt: "CXlmrshG"
+    ]
 
-  #   plug Plug.Session, @session_options
+    plug Plug.Session, @session_options
 
-  #   plug :fetch_query_params
+    plug :fetch_query_params
 
-  #   plug Ueberauth
+    plug Ueberauth
 
-  #   plug :match
-  #   plug :dispatch
+    plug :match
+    plug :dispatch
 
-  #   get "/auth/hubspot", do: send_resp(conn, 200, "auth0 request")
-  #   get "/auth/hubspot/callback", do: send_resp(conn, 200, "auth0 callback")
-  # end
-
-  setup do
-    Application.put_env(:ueberauth, Ueberauth.Strategy.Hubspot.OAuth,
-      client_id: "test-client-id",
-      client_secret: "test-client-secret"
-    )
+    get "/auth/hubspot", do: send_resp(conn, 200, "auth0 request")
+    get "/auth/hubspot/callback", do: send_resp(conn, 200, "auth0 callback")
   end
 
   test "handle_request!/1 redirects to the hubspot auth url" do
