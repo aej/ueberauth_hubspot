@@ -172,5 +172,54 @@ defmodule UeberauthHubspotTest do
                }
              ]
     end
+
+    test "missing token" do
+      TestServer.add("/oauth/v1/token",
+        via: :post,
+        to: fn conn ->
+          conn
+          |> Plug.Conn.put_resp_content_type("application/json")
+          |> Plug.Conn.send_resp(
+            200,
+            Jason.encode!(%{
+              error: "something_wrong",
+              error_description: "Something went wrong"
+            })
+          )
+        end
+      )
+
+      Application.put_env(:ueberauth_hubspot, :base_api_url, TestServer.url())
+
+      request_conn =
+        :get
+        |> conn("/auth/hubspot", id: "foo")
+        |> SpecRouter.call(@router)
+        |> Plug.Conn.fetch_cookies()
+
+      state = request_conn.private[:ueberauth_state_param]
+      code = "some_code"
+
+      conn =
+        :get
+        |> conn("/auth/hubspot/callback",
+          id: "foo",
+          code: code,
+          state: state
+        )
+        |> Map.put(:cookies, request_conn.cookies)
+        |> Map.put(:req_cookies, request_conn.req_cookies)
+        |> Plug.Session.call(@session_options)
+        |> SpecRouter.call(@router)
+
+      auth = conn.assigns.ueberauth_failure
+
+      assert auth.errors == [
+               %Ueberauth.Failure.Error{
+                 message: "Something went wrong",
+                 message_key: "something_wrong"
+               }
+             ]
+    end
   end
 end

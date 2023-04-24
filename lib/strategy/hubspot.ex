@@ -1,5 +1,6 @@
 defmodule Ueberauth.Strategy.Hubspot do
-  use Ueberauth.Strategy
+  use Ueberauth.Strategy,
+    oauth2_module: Ueberauth.Strategy.Hubspot.OAuth
 
   def handle_request!(conn) do
     scope = conn.params["scope"] || "oauth"
@@ -11,19 +12,25 @@ defmodule Ueberauth.Strategy.Hubspot do
 
   def handle_callback!(%Plug.Conn{params: %{"code" => code}} = conn) do
     redirect_uri = callback_url(conn)
+    module = option(conn, :oauth2_module)
 
-    %OAuth2.AccessToken{} =
-      access_token =
-      [code: code, redirect_uri: redirect_uri]
-      |> Ueberauth.Strategy.Hubspot.OAuth.get_token!(redirect_uri: redirect_uri)
+    result =
+      module.get_token!([code: code, redirect_uri: redirect_uri], redirect_uri: redirect_uri)
 
-    if access_token.access_token == nil do
-      err = access_token.other_params["error"]
-      desc = access_token.other_params["error_description"]
-      set_errors!(conn, [error(err, desc)])
-    else
-      put_private(conn, :hubspot_token, access_token)
-      |> fetch_access_token_info(access_token)
+    case result do
+      %OAuth2.AccessToken{} = access_token ->
+        if access_token.access_token == nil do
+          err = access_token.other_params["error"]
+          desc = access_token.other_params["error_description"]
+          set_errors!(conn, [error(err, desc)])
+        else
+          conn
+          |> put_private(:hubspot_token, access_token)
+          |> fetch_access_token_info(access_token)
+        end
+
+      {:error, client} ->
+        set_errors!(conn, [error(client.body["error"], client.body["error_description"])])
     end
   end
 
@@ -86,4 +93,15 @@ defmodule Ueberauth.Strategy.Hubspot do
         set_errors!(conn, [error("OAuth2", reason)])
     end
   end
+
+  defp option(conn, key) do
+    default = Keyword.get(default_options(), key)
+
+    conn
+    |> options
+    |> Keyword.get(key, default)
+  end
+
+  defp option(nil, conn, key), do: option(conn, key)
+  defp option(value, _conn, _key), do: value
 end
