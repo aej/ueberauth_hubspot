@@ -3,4 +3,4 @@ import Config
 config :ueberauth_hubspot,
   base_api_url: "https://api.hubapi.com"
 
-import_config("#{Mix.env()}.exs")
+if Mix.env() == :test, do: import_config("#{Mix.env()}.exs")

@@ -221,5 +221,8 @@ defmodule UeberauthHubspotTest do
                }
              ]
     end
+
+    test "access token info call with unauthorized token" do
+    end
   end
 end
