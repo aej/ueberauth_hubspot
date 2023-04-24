@@ -2,7 +2,7 @@ defmodule Ueberauth.Strategy.Hubspot do
   use Ueberauth.Strategy
 
   def handle_request!(conn) do
-    scope = conn.params["scope"] || option(conn, :default_scope)
+    scope = conn.params["scope"] || "oauth"
 
     opts = [scopes: scope, redirect_uri: callback_url(conn)] |> with_state_param(conn)
 
@@ -85,9 +85,5 @@ defmodule Ueberauth.Strategy.Hubspot do
       {:error, %OAuth2.Error{reason: reason}} ->
         set_errors!(conn, [error("OAuth2", reason)])
     end
-  end
-
-  defp option(conn, key) do
-    Keyword.get(options(conn), key, Keyword.get(default_options(), key))
   end
 end

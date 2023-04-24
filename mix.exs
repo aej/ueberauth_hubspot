@@ -22,8 +22,11 @@ defmodule UeberauthHubspot.MixProject do
   defp deps do
     [
       {:oauth2, "~> 1.0 or ~> 2.0"},
-      {:ueberauth, path: "../crm/deps/ueberauth"}
-      # {:ueberauth, "~> 0.10.0"}
+      {:ueberauth, "~> 0.10.0"},
+      {:jason, "~> 1.0"},
+
+      # Test only
+      {:test_server, "~> 0.1", only: [:test]}
     ]
   end
 end
