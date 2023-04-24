@@ -144,5 +144,33 @@ defmodule UeberauthHubspotTest do
                }
              ]
     end
+
+    test "missing code" do
+      request_conn =
+        :get
+        |> conn("/auth/hubspot", id: "foo")
+        |> SpecRouter.call(@router)
+        |> Plug.Conn.fetch_cookies()
+
+      state = request_conn.private[:ueberauth_state_param]
+
+      conn =
+        :get
+        |> conn("/auth/hubspot/callback",
+          id: "foo",
+          state: state
+        )
+        |> Map.put(:cookies, request_conn.cookies)
+        |> Map.put(:req_cookies, request_conn.req_cookies)
+        |> Plug.Session.call(@session_options)
+        |> SpecRouter.call(@router)
+
+      assert conn.assigns.ueberauth_failure.errors == [
+               %Ueberauth.Failure.Error{
+                 message: "No code received",
+                 message_key: "missing_code"
+               }
+             ]
+    end
   end
 end
