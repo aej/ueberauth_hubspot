@@ -8,12 +8,6 @@ defmodule UeberauthHubspotTest do
 
   doctest UeberauthHubspot
 
-  @session_options Plug.Session.init(
-                     store: Plug.Session.COOKIE,
-                     key: "_my_key",
-                     signing_salt: "CXlmrshG"
-                   )
-
   defmodule SpecRouter do
     use Plug.Router
 
@@ -36,18 +30,26 @@ defmodule UeberauthHubspotTest do
     get "/auth/hubspot/callback", do: send_resp(conn, 200, "auth0 callback")
   end
 
+  @session_options Plug.Session.init(
+                     store: Plug.Session.COOKIE,
+                     key: "_my_key",
+                     signing_salt: "CXlmrshG"
+                   )
+  @router SpecRouter.init([])
+
   test "handle_request!/1 redirects to the hubspot auth url" do
-    response =
+    conn =
       :get
       |> conn("/auth/hubspot", %{})
-      |> init_test_session(%{})
-      |> Ueberauth.Strategy.Hubspot.handle_request!()
+      |> SpecRouter.call(@router)
 
-    assert response.status == 302
-    assert [location] = get_resp_header(response, "location")
+    assert conn.status == 302
+    assert [location] = get_resp_header(conn, "location")
 
-    assert location =~
-             "https://app.hubspot.com/oauth/authorize?client_id=test-client-id&redirect_uri=http%3A%2F%2Fwww.example.com&response_type=code&scopes=oauth"
+    assert location =~ "https://app.hubspot.com/oauth/authorize"
+    assert location =~ "client_id=test-client-id"
+    assert location =~ "scopes=oauth"
+    assert location =~ "state=#{conn.private[:ueberauth_state_param]}"
   end
 
   test "handle_callback!/1 fetches the token" do
