@@ -1,21 +1,68 @@
-# UeberauthHubspot
+# Ueberauth Hubspot
 
-**TODO: Add description**
+> An Ueberauth Strategy for Hubspot
 
 ## Installation
 
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed
-by adding `ueberauth_hubspot` to your list of dependencies in `mix.exs`:
+Add `:ueberauth` and `:ueberauth_hubspot` to your `mix.exs`:
 
 ```elixir
-def deps do
+defp deps do
   [
-    {:ueberauth_hubspot, "~> 0.1.0"}
+    # ...
+    {:ueberauth, "~> 0.7"},
+    {:ueberauth_cognito, "~> 0.1"}
   ]
 end
 ```
 
-Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
-and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
-be found at <https://hexdocs.pm/ueberauth_hubspot>.
+Configure Ueberauth to use this strategy:
 
+```elixir
+config :ueberauth, Ueberauth,
+  providers: [
+    hubspot: {Ueberauth.Strategy.Hubspot, []}
+  ]
+```
+
+and configure the required values:
+
+```elixir
+config :ueberauth, Ueberauth.Strategy.Hubspot.OAuth,
+    client_id: hubspot_client_id,
+    client_secret: hubspot_client_secret
+```
+
+Add the routes to the router:
+
+```elixir
+scope "/auth", MyWeb do
+  get "/:provider", AuthController, :request
+  get "/:provider/callback", AuthController, :callback
+end
+```
+
+and create the corresponding controller:
+
+```elixir
+defmodule MyWeb.AuthController do
+  use MyWeb, :controller
+  plug Ueberauth
+
+  def callback(%{assigns: %{ueberauth_failure: _fails}} = conn, _params) do
+    # handle failture
+  end
+
+  def callback(%{assigns: %{ueberauth_auth: auth}} = conn, _params) do
+    # handle success
+    # auth is a `%Ueberauth.Auth{}` struct, with Hubspot token and connected account info
+    send_resp(conn, 200, "Succcess")
+  end
+end
+```
+
+## Copyright and License
+
+Copyright (c) 2023 Andy Jones
+
+Source code licensed under [MIT License](./LICENSE.md).
